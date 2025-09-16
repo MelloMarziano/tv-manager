@@ -16,9 +16,9 @@
   <div class="search-container">
     <div class="search-input-wrapper">
       <i class="fas fa-search search-icon"></i>
-      <input 
-        type="text" 
-        placeholder="Buscar clientes..." 
+      <input
+        type="text"
+        placeholder="Buscar clientes..."
         [(ngModel)]="searchTerm"
         (input)="filterClientes()"
         class="search-input">
@@ -27,53 +27,59 @@
 
   <!-- Grid de clientes -->
   <div class="clientes-grid">
-    <div 
-      *ngFor="let cliente of filteredClientes" 
-      class="cliente-card"
-      [class.inactive]="!cliente.activo">
-      
-      <div class="card-header">
-        <div class="cliente-info">
-          <h3 class="cliente-name">{{ cliente.nombre }}</h3>
-          <span 
-            class="cliente-status" 
-            [class.status-activo]="cliente.activo"
-            [class.status-inactivo]="!cliente.activo">
-            {{ cliente.activo ? 'Activo' : 'Inactivo' }}
-          </span>
-        </div>
-        <div class="card-actions">
-          <button class="btn-options" (click)="openOptionsMenu(cliente)">
-            <i class="fas fa-ellipsis-v"></i>
-          </button>
-        </div>
-      </div>
+    <div
+  *ngFor="let cliente of filteredClientes"
+  class="cliente-card"
+  [class.inactive]="!cliente.activo">
 
-      <div class="card-content">
-        <div class="contact-item">
-          <i class="fas fa-envelope"></i>
-          <span>{{ cliente.email }}</span>
-        </div>
-        <div class="contact-item">
-          <i class="fas fa-phone"></i>
-          <span>{{ cliente.telefono }}</span>
-        </div>
-        <div class="contact-item">
-          <i class="fas fa-map-marker-alt"></i>
-          <span>{{ cliente.direccion }}</span>
-        </div>
-      </div>
-
-      <div class="card-footer">
-        <div class="tv-count">
-          <i class="fas fa-tv"></i>
-          <span>{{ cliente.televisores?.length || 0 }} TVs</span>
-        </div>
-        <button class="btn-ver-tvs" (click)="verTelevisores(cliente)">
-          Ver TVs
-        </button>
-      </div>
+  <!-- Header -->
+  <div class="card-header">
+    <div class="cliente-info">
+      <h3 class="cliente-name">{{ cliente.nombre }}</h3>
+      <span
+        class="status-badge"
+        [class.activo]="cliente.activo"
+        [class.inactivo]="!cliente.activo">
+        {{ cliente.activo ? 'Activo' : 'Inactivo' }}
+      </span>
     </div>
+
+    <div class="card-actions">
+      <button class="btn-options" (click)="openOptionsMenu(cliente)" aria-label="Opciones">
+        <i class="fas fa-cog"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="card-content">
+    <div class="contact-item">
+      <i class="fas fa-envelope"></i>
+      <span class="text-ellipsis">{{ cliente.email || '—' }}</span>
+    </div>
+    <div class="contact-item">
+      <i class="fas fa-phone"></i>
+      <span class="text-ellipsis">{{ cliente.telefono || '—' }}</span>
+    </div>
+    <div class="contact-item">
+      <i class="fas fa-map-marker-alt"></i>
+      <span class="text-ellipsis">{{ cliente.direccion || '—' }}</span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="card-footer">
+    <div class="tv-count">
+      <i class="fas fa-tv"></i>
+      <span>{{ cliente.televisores?.length || 0 }} TVs</span>
+    </div>
+
+    <button class="btn-ver-tvs" (click)="verTelevisores(cliente)">
+      Ver TVs
+    </button>
+  </div>
+</div>
+
   </div>
 
   <!-- Estado vacío -->
@@ -99,8 +105,8 @@
     <form [formGroup]="clienteForm" (ngSubmit)="createCliente()" class="modal-content">
       <div class="form-group">
         <label for="nombre" class="form-label">Nombre *</label>
-        <input 
-          type="text" 
+        <input
+          type="text"
           id="nombre"
           formControlName="nombre"
           placeholder="Nombre del cliente"
@@ -113,8 +119,8 @@
 
       <div class="form-group">
         <label for="email" class="form-label">Email</label>
-        <input 
-          type="email" 
+        <input
+          type="email"
           id="email"
           formControlName="email"
           placeholder="email@ejemplo.com"
@@ -127,8 +133,8 @@
 
       <div class="form-group">
         <label for="telefono" class="form-label">Teléfono</label>
-        <input 
-          type="tel" 
+        <input
+          type="tel"
           id="telefono"
           formControlName="telefono"
           placeholder="+34 000 000 000"
@@ -137,7 +143,7 @@
 
       <div class="form-group">
         <label for="direccion" class="form-label">Dirección</label>
-        <textarea 
+        <textarea
           id="direccion"
           formControlName="direccion"
           placeholder="Dirección completa del cliente"
@@ -151,8 +157,8 @@
           <p class="toggle-description">El cliente podrá gestionar sus televisores</p>
         </div>
         <div class="toggle-switch">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             formControlName="activo"
             class="toggle-input">
           <span class="toggle-slider"></span>
