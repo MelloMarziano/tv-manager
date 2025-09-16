@@ -1,0 +1,100 @@
+<div class="dashboard-container">
+  <!-- Header del Dashboard -->
+  <div class="dashboard-header">
+    <h1 class="dashboard-title">Dashboard</h1>
+    <p class="dashboard-subtitle">Vista general del sistema de gestión de displays</p>
+  </div>
+
+  <!-- Tarjetas de Estadísticas -->
+  <div class="stats-grid">
+    <!-- Tarjeta Clientes -->
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="bi bi-person-fill"></i>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-number">{{ statsData.clientes.total }}</h3>
+        <p class="stat-label">Clientes</p>
+        <span class="stat-detail">{{ statsData.clientes.activos }} activos</span>
+      </div>
+    </div>
+
+    <!-- Tarjeta Televisores -->
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="bi bi-tv-fill"></i>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-number">{{ statsData.televisores.total }}</h3>
+        <p class="stat-label">Televisores</p>
+        <span class="stat-detail stat-online">{{ statsData.televisores.enLinea }} en línea</span>
+      </div>
+    </div>
+
+    <!-- Tarjeta Imágenes -->
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="bi bi-image-fill"></i>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-number">{{ statsData.imagenes.total }}</h3>
+        <p class="stat-label">Imágenes</p>
+        <span class="stat-detail">{{ statsData.imagenes.descripcion }}</span>
+      </div>
+    </div>
+
+    <!-- Tarjeta Programación -->
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="bi bi-calendar3-fill"></i>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-number">{{ statsData.programacion.total }}</h3>
+        <p class="stat-label">Programación</p>
+        <span class="stat-detail">{{ statsData.programacion.descripcion }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección de Contenido Principal -->
+  <div class="main-content-grid">
+    <!-- Acciones Rápidas -->
+    <div class="quick-actions-card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="bi bi-lightning-fill"></i>
+          Acciones Rápidas
+        </h2>
+      </div>
+      <div class="card-content">
+        <div class="action-item" *ngFor="let action of quickActions">
+          <div class="action-icon">
+            <i class="bi {{ action.icon }}"></i>
+          </div>
+          <span class="action-text">{{ action.text }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actividad Reciente -->
+    <div class="recent-activity-card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="bi bi-activity"></i>
+          Actividad Reciente
+        </h2>
+      </div>
+      <div class="card-content">
+        <div class="activity-item" *ngFor="let activity of recentActivities">
+          <div class="activity-content">
+            <h4 class="activity-title">{{ activity.title }}</h4>
+            <p class="activity-description">{{ activity.description }}</p>
+          </div>
+          <div class="activity-time">
+            <span class="time-text">{{ activity.time }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

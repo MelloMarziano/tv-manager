@@ -1,0 +1,418 @@
+<div class="televisores-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <button class="back-btn" (click)="goBack()" *ngIf="clienteId">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+      <div class="title-section">
+        <h1 class="page-title">{{ pageTitle }}</h1>
+        <p class="page-subtitle" *ngIf="clienteNombre">{{ pageSubtitle }}</p>
+      </div>
+    </div>
+    <button class="btn-primary" (click)="openNewTvModal()">
+      <i class="bi bi-plus"></i>
+      Nuevo Televisor
+    </button>
+  </div>
+
+  <!-- Filters and Search -->
+  <div class="filters-section">
+    <div class="search-container">
+      <i class="bi bi-search search-icon"></i>
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Buscar televisores..."
+        [(ngModel)]="searchTerm"
+        (input)="onSearch()">
+    </div>
+    
+    <div class="filter-container">
+      <select class="filter-select" [(ngModel)]="selectedFilter" (change)="onFilterChange()">
+        <option value="todos">Todos</option>
+        <option value="activo">Activos</option>
+        <option value="desconectado">Desconectados</option>
+        <option value="en_linea">En línea</option>
+      </select>
+      <i class="bi bi-funnel filter-icon"></i>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-section">
+    <div class="stat-item">
+      <span class="stat-label">Total:</span>
+      <span class="stat-value">{{ totalTvs }}</span>
+    </div>
+    <div class="stat-item active">
+      <span class="stat-label">Activos:</span>
+      <span class="stat-value">{{ activeTvs }}</span>
+    </div>
+    <div class="stat-item offline">
+      <span class="stat-label">En línea:</span>
+      <span class="stat-value">{{ onlineTvs }}</span>
+    </div>
+  </div>
+
+  <!-- TV Grid -->
+  <div class="tv-grid">
+    <div class="tv-card" *ngFor="let tv of filteredTvs">
+      <div class="tv-header">
+        <div class="tv-info">
+          <div class="tv-icon">
+            <i class="bi bi-tv"></i>
+          </div>
+          <div class="tv-details">
+            <h3 class="tv-name">{{ tv.nombre }}</h3>
+            <p class="tv-location">
+              <i class="bi bi-geo-alt"></i>
+              {{ tv.ubicacion }}
+            </p>
+          </div>
+        </div>
+        <div class="tv-status">
+          <span class="status-badge" [ngClass]="tv.estado.toLowerCase()">
+            {{ tv.estado }}
+          </span>
+          <button class="options-btn">
+            <i class="bi bi-three-dots"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="tv-specs">
+        <div class="spec-item">
+          <span class="spec-label">Resolución:</span>
+          <span class="spec-value">{{ tv.resolucion }}</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">Última conexión:</span>
+          <span class="spec-value">{{ tv.ultimaConexion }}</span>
+        </div>
+      </div>
+
+      <div class="tv-actions">
+        <div class="image-info">
+          <i class="bi bi-images"></i>
+          <span>{{ tv.imagenes }} imágenes</span>
+          <button class="manage-images-btn" (click)="openImageModal(tv)">Gestionar Imágenes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="filteredTvs.length === 0">
+    <i class="bi bi-tv"></i>
+    <h3>No se encontraron televisores</h3>
+    <p>{{ emptyStateMessage }}</p>
+  </div>
+</div>
+
+<!-- Modal for New TV -->
+<div class="modal-overlay" *ngIf="showNewTvModal" (click)="closeNewTvModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Crear Nuevo Televisor</h2>
+      <button class="close-btn" (click)="closeNewTvModal()">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+    
+    <form [formGroup]="newTvForm" (ngSubmit)="onSubmitNewTv()">
+      <div class="form-group">
+        <label for="nombre">Nombre *</label>
+        <input 
+          type="text" 
+          id="nombre"
+          formControlName="nombre"
+          placeholder="Nombre del televisor"
+          class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label for="ubicacion">Ubicación</label>
+        <input 
+          type="text" 
+          id="ubicacion"
+          formControlName="ubicacion"
+          placeholder="Ubicación del televisor"
+          class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label for="resolucion">Resolución</label>
+        <select id="resolucion" formControlName="resolucion" class="form-control">
+          <option value="">Seleccionar resolución</option>
+          <option value="1920x1080">1920x1080 (Full HD)</option>
+          <option value="1366x768">1366x768 (HD)</option>
+          <option value="3840x2160">3840x2160 (4K)</option>
+          <option value="2560x1440">2560x1440 (2K)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <div class="checkbox-group">
+          <input 
+            type="checkbox" 
+            id="activo"
+            formControlName="activo">
+          <label for="activo">Televisor Activo</label>
+          <small>El televisor podrá gestionar sus televisores</small>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closeNewTvModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="!newTvForm.valid">
+          Crear Televisor
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal de Gestión de Imágenes -->
+<div class="modal-overlay" *ngIf="showImageModal" (click)="closeImageModal()">
+  <div class="image-modal-container" (click)="$event.stopPropagation()">
+    <!-- Header del modal con navegación por pasos -->
+    <div class="modal-header">
+      <div class="modal-navigation">
+        <div class="step" [ngClass]="{'active': currentModalStep === 'images'}">
+          <span class="step-number">1</span>
+          <span class="step-title">Gestión de Imágenes</span>
+        </div>
+        <div class="step-separator" *ngIf="selectedImage"></div>
+        <div class="step" [ngClass]="{'active': currentModalStep === 'schedule'}" *ngIf="selectedImage">
+          <span class="step-number">2</span>
+          <span class="step-title">Programar Horario (Opcional)</span>
+        </div>
+      </div>
+      <button class="btn-close" (click)="closeImageModal()">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+
+    <!-- Contenido del paso 1: Gestión de Imágenes -->
+    <div class="modal-content" *ngIf="currentModalStep === 'images'">
+      <div class="modal-title-section">
+        <h2 class="modal-title">
+          <i class="bi bi-images"></i>
+          Gestionar Imágenes - {{ selectedTv?.nombre }}
+        </h2>
+        <p class="modal-subtitle">{{ selectedTv?.ubicacion }}</p>
+      </div>
+
+    <!-- Contenido del modal -->
+    <div class="image-modal-content">
+      <!-- Sección de carga de imágenes -->
+      <div class="upload-section">
+        <div class="upload-area" 
+             [ngClass]="{'dragover': isDragOver}"
+             (dragover)="onDragOver($event)"
+             (dragleave)="onDragLeave($event)"
+             (drop)="onDrop($event)"
+             (click)="fileInput.click()">
+          <i class="bi bi-cloud-upload upload-icon"></i>
+          <h3>Arrastra imágenes aquí o haz clic para seleccionar</h3>
+          <p>Formatos soportados: JPG, PNG, GIF (máx. 5MB cada una)</p>
+          <input #fileInput 
+                 type="file" 
+                 multiple 
+                 accept="image/*" 
+                 (change)="onFileSelect($event)"
+                 style="display: none;">
+        </div>
+      </div>
+
+      <!-- Lista de imágenes cargadas -->
+      <div class="images-list" *ngIf="selectedTvImages.length > 0">
+        <h3 class="section-title">
+          <i class="bi bi-collection"></i>
+          Imágenes Programadas ({{ selectedTvImages.length }})
+        </h3>
+        
+        <div class="images-grid">
+          <div class="image-item" *ngFor="let image of selectedTvImages; let i = index">
+            <!-- Preview de la imagen -->
+            <div class="image-preview">
+              <img [src]="image.url" [alt]="image.nombre">
+              <div class="image-overlay">
+                <button class="btn-edit" (click)="editImage(image)" title="Editar programación">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn-delete" (click)="deleteImage(i)" title="Eliminar imagen">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Información de la imagen -->
+            <div class="image-info">
+              <h4 class="image-name">{{ image.nombre }}</h4>
+              
+              <!-- Horarios programados -->
+              <div class="schedule-info">
+                <div class="schedule-item" *ngFor="let schedule of image.horarios">
+                  <div class="time-range">
+                    <i class="bi bi-clock"></i>
+                    {{ schedule.horaInicio }} - {{ schedule.horaFin }}
+                  </div>
+                  <div class="days-info">
+                    <i class="bi bi-calendar3"></i>
+                    <span class="days-text">{{ getDaysText(schedule.dias) }}</span>
+                  </div>
+                </div>
+                
+                <div class="no-schedule" *ngIf="image.horarios.length === 0">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  Sin programación
+                </div>
+              </div>
+
+              <!-- Botón para agregar horario -->
+              <button class="btn-add-schedule" (click)="openScheduleModal(image)">
+                <i class="bi bi-plus"></i>
+                Agregar Horario
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estado vacío -->
+      <div class="empty-images" *ngIf="selectedTvImages.length === 0">
+        <i class="bi bi-image"></i>
+        <h3>No hay imágenes cargadas</h3>
+        <p>Sube imágenes para comenzar a programar el menú de esta TV</p>
+      </div>
+    </div>
+
+    <!-- Footer del modal -->
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeImageModal()">
+        Cerrar
+      </button>
+      <button class="btn-primary" (click)="saveImageChanges()" [disabled]="selectedTvImages.length === 0">
+        <i class="bi bi-check"></i>
+        Guardar Cambios
+      </button>
+    </div>
+    </div>
+
+    <!-- Contenido del paso 2: Programación de Horarios -->
+    <div class="modal-content" *ngIf="currentModalStep === 'schedule'">
+      <div class="modal-title-section">
+        <h2 class="modal-title">
+          <i class="bi bi-calendar-event"></i>
+          Programar Horario para "{{ selectedImage?.nombre }}"
+        </h2>
+        <p class="modal-subtitle">
+          <i class="bi bi-info-circle"></i>
+          Si no asignas horarios específicos, la imagen se mostrará las 24 horas todos los días
+        </p>
+      </div>
+
+      <form [formGroup]="scheduleForm" (ngSubmit)="addScheduleToImage()">
+        <!-- Horario -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">
+              <i class="bi bi-clock"></i>
+              Hora de Inicio
+            </label>
+            <input type="time" 
+                   class="form-input" 
+                   formControlName="horaInicio"
+                   required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">
+              <i class="bi bi-clock-history"></i>
+              Hora de Fin
+            </label>
+            <input type="time" 
+                   class="form-input" 
+                   formControlName="horaFin"
+                   required>
+          </div>
+        </div>
+
+        <!-- Días de la semana -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="bi bi-calendar3"></i>
+            Días de la Semana
+          </label>
+          
+          <div class="days-selector">
+            <div class="day-option" *ngFor="let day of diasSemana; let i = index">
+              <input type="checkbox" 
+                     [id]="'day-' + i"
+                     [value]="day.value"
+                     (change)="onDayChange(day)"
+                     [checked]="selectedDays.includes(day.value)">
+              <label [for]="'day-' + i" class="day-label">
+                {{ day.label }}
+              </label>
+            </div>
+          </div>
+
+          <!-- Botones de selección rápida -->
+          <div class="quick-select">
+            <button type="button" class="btn-quick" (click)="selectAllDays()">
+              Todos los días
+            </button>
+            <button type="button" class="btn-quick" (click)="selectWeekdays()">
+              Lun - Vie
+            </button>
+            <button type="button" class="btn-quick" (click)="selectWeekends()">
+              Fin de semana
+            </button>
+            <button type="button" class="btn-quick" (click)="clearDays()">
+              Limpiar
+            </button>
+          </div>
+        </div>
+
+        <!-- Vista previa del horario -->
+        <div class="schedule-preview" *ngIf="scheduleForm.valid && selectedDays.length > 0">
+          <h4>
+            <i class="bi bi-eye"></i>
+            Vista Previa
+          </h4>
+          <div class="preview-content">
+            <div class="preview-time">
+              {{ scheduleForm.get('horaInicio')?.value }} - {{ scheduleForm.get('horaFin')?.value }}
+            </div>
+            <div class="preview-days">
+              {{ getDaysText(getSelectedDaysAsObjects()) }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones del modal -->
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" (click)="backToImages()">
+            <i class="bi bi-arrow-left"></i>
+            Volver a Imágenes
+          </button>
+          <button type="button" class="btn-tertiary" (click)="skipScheduling()">
+            <i class="bi bi-skip-forward"></i>
+            Saltar (24/7)
+          </button>
+          <button type="submit" 
+                  class="btn-primary" 
+                  [disabled]="!scheduleForm.valid || selectedDays.length === 0">
+            <i class="bi bi-check"></i>
+            Guardar Horario
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

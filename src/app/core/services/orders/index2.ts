@@ -1,0 +1,64 @@
+export interface OrdenModel {
+    status: string;
+    code: number;
+    message: string;
+    data: OrdersDataModel[];
+}
+
+export interface OrdersDataModel {
+    f_idservicio: number;
+    f_rnc_principal: string;
+    f_email_principal: string;
+    f_fecha_creacion: Date;
+    f_app: number;
+    f_usuario: number;
+    f_sucursal: number;
+    f_almacen: number;
+    f_vendedor: number;
+    f_documento: string;
+    f_nodoc: number;
+    f_tipodoc: string;
+    f_fecha: Date;
+    f_monto: string;
+    f_itbis: string;
+    f_monto_base: string;
+    f_monto_excento: string;
+    f_descuento: string;
+    f_descuento_porciento: string;
+    f_monto_subtotal: string;
+    f_monto_bruto: string;
+    f_envio_flete: string;
+    f_efectivo: string;
+    f_transferencia: string;
+    f_tarjeta: string;
+    f_cheque: string;
+    f_permuta: string;
+    f_forma_pago: string;
+    f_balance: string;
+    f_monto_tasa: string;
+    f_moneda: number;
+    f_cheque_numero: number;
+    f_tarjeta_numero: number;
+    f_transferencia_numero: number;
+    f_cuadre_caja: number;
+    f_tipo_ncf: number;
+    f_ncf_secuencia: number;
+    f_ncf: string;
+    f_ncf_vencimiento: Date;
+    f_fecha_factura: Date;
+    f_fecha_vencimiento: Date;
+    f_fecha_cheque: Date;
+    f_apertura: string;
+    f_estado_factura: number;
+    f_cliente: number;
+    f_cliente_rnc: string;
+    f_cliente_nombre: string;
+    f_cliente_email: string;
+    f_cliente_telefono: string;
+    f_observacion: string;
+    f_departamento: number;
+    f_ticket_cantidad_pieza: number;
+    f_ticket: string;
+    f_fecha_entrega: Date;
+    f_hora_entrega: string;
+}

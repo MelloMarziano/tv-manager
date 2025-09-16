@@ -1,0 +1,173 @@
+<!-- Contenedor principal -->
+<div class="clientes-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Clientes</h1>
+      <p class="page-subtitle">Gestiona tus clientes y sus televisores</p>
+    </div>
+    <button class="btn-nuevo-cliente" (click)="openCreateModal()">
+      <i class="fas fa-plus"></i>
+      Nuevo Cliente
+    </button>
+  </div>
+
+  <!-- Barra de búsqueda -->
+  <div class="search-container">
+    <div class="search-input-wrapper">
+      <i class="fas fa-search search-icon"></i>
+      <input 
+        type="text" 
+        placeholder="Buscar clientes..." 
+        [(ngModel)]="searchTerm"
+        (input)="filterClientes()"
+        class="search-input">
+    </div>
+  </div>
+
+  <!-- Grid de clientes -->
+  <div class="clientes-grid">
+    <div 
+      *ngFor="let cliente of filteredClientes" 
+      class="cliente-card"
+      [class.inactive]="!cliente.activo">
+      
+      <div class="card-header">
+        <div class="cliente-info">
+          <h3 class="cliente-name">{{ cliente.nombre }}</h3>
+          <span 
+            class="cliente-status" 
+            [class.status-activo]="cliente.activo"
+            [class.status-inactivo]="!cliente.activo">
+            {{ cliente.activo ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+        <div class="card-actions">
+          <button class="btn-options" (click)="openOptionsMenu(cliente)">
+            <i class="fas fa-ellipsis-v"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-content">
+        <div class="contact-item">
+          <i class="fas fa-envelope"></i>
+          <span>{{ cliente.email }}</span>
+        </div>
+        <div class="contact-item">
+          <i class="fas fa-phone"></i>
+          <span>{{ cliente.telefono }}</span>
+        </div>
+        <div class="contact-item">
+          <i class="fas fa-map-marker-alt"></i>
+          <span>{{ cliente.direccion }}</span>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <div class="tv-count">
+          <i class="fas fa-tv"></i>
+          <span>{{ cliente.televisores?.length || 0 }} TVs</span>
+        </div>
+        <button class="btn-ver-tvs" (click)="verTelevisores(cliente)">
+          Ver TVs
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estado vacío -->
+  <div *ngIf="filteredClientes.length === 0" class="empty-state">
+    <div class="empty-icon">
+      <i class="fas fa-users"></i>
+    </div>
+    <h3 class="empty-title">No hay clientes</h3>
+    <p class="empty-subtitle">Comienza agregando tu primer cliente</p>
+  </div>
+</div>
+
+<!-- Modal para crear cliente -->
+<div class="modal-overlay" *ngIf="showCreateModal" [class.show]="showCreateModal" (click)="closeCreateModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">Nuevo Cliente</h2>
+      <button class="btn-close" (click)="closeCreateModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="clienteForm" (ngSubmit)="createCliente()" class="modal-content">
+      <div class="form-group">
+        <label for="nombre" class="form-label">Nombre *</label>
+        <input 
+          type="text" 
+          id="nombre"
+          formControlName="nombre"
+          placeholder="Nombre del cliente"
+          class="form-input"
+          [class.error]="hasError('nombre', 'required')">
+        <div class="error-message" *ngIf="hasError('nombre', 'required')">
+          {{ getErrorMessage('nombre') }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email" class="form-label">Email</label>
+        <input 
+          type="email" 
+          id="email"
+          formControlName="email"
+          placeholder="email@ejemplo.com"
+          class="form-input"
+          [class.error]="hasError('email', 'email')">
+        <div class="error-message" *ngIf="hasError('email', 'email')">
+          {{ getErrorMessage('email') }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="telefono" class="form-label">Teléfono</label>
+        <input 
+          type="tel" 
+          id="telefono"
+          formControlName="telefono"
+          placeholder="+34 000 000 000"
+          class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label for="direccion" class="form-label">Dirección</label>
+        <textarea 
+          id="direccion"
+          formControlName="direccion"
+          placeholder="Dirección completa del cliente"
+          class="form-input form-textarea"
+          rows="3"></textarea>
+      </div>
+
+      <div class="form-group toggle-group">
+        <div class="toggle-info">
+          <div class="toggle-label">Cliente Activo</div>
+          <p class="toggle-description">El cliente podrá gestionar sus televisores</p>
+        </div>
+        <div class="toggle-switch">
+          <input 
+            type="checkbox" 
+            formControlName="activo"
+            class="toggle-input">
+          <span class="toggle-slider"></span>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="closeCreateModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-create" [disabled]="!clienteForm.valid">
+          <i class="fas fa-save"></i>
+          Crear Cliente
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
