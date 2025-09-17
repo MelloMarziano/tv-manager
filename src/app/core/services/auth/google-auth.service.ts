@@ -16,7 +16,7 @@ export class GoogleAuthService {
 
     async loginWithGoogleAuth() {
         console.log('Iniciando sesión con Google... servicio');
-        const auth = getAuth(); // No necesitas `await` aquí, ya devuelve una instancia directamente.
+        const auth = getAuth();
         const provider = new GoogleAuthProvider();
         provider.addScope('email');
         return signInWithPopup(auth, provider)
@@ -60,7 +60,7 @@ export class GoogleAuthService {
         }
     }
 
-    // Validar formato de email
+    
     private isValidEmail(email: string): boolean {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);

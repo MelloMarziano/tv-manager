@@ -21,7 +21,7 @@ interface TelevisorLocal extends Televisor {
 
 interface ImagenTvLocal extends ImagenTv {
   uiColor: string;
-  showDetails?: boolean; // Propiedad para controlar la visibilidad de los detalles en la tabla
+  showDetails?: boolean;
 }
 
 interface TimeSlot {
@@ -215,7 +215,7 @@ export class TelevisoresPage implements OnInit {
       this.selectedTvImages = images.map((img, index) => ({
         ...img,
         uiColor: this.colorPalette[index % this.colorPalette.length],
-        showDetails: false // Inicializa showDetails a false
+        showDetails: false
       }));
     } catch (error) {
       this.selectedTvImages = [];

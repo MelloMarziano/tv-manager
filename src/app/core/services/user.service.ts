@@ -8,7 +8,7 @@ import { User } from '../models/user.model';
   providedIn: 'root',
 })
 export class UserService {
-  private collection = 'usuarios'; // Colección de Firestore para usuarios
+  private collection = 'usuarios';
 
   constructor(private firestore: AngularFirestore) {}
 
@@ -66,7 +66,7 @@ export class UserService {
    */
   async createUser(user: User): Promise<void> {
     // En un entorno real, aquí se hashearía la contraseña antes de añadirla.
-    // Ejemplo (pseudocódigo): user.password = await bcrypt.hash(user.password, saltRounds);
+    
     const userToSave: Omit<User, 'id'> = { ...user, fechaCreacion: new Date() };
     await this.firestore.collection(this.collection).add(userToSave);
   }
