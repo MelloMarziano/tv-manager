@@ -1,0 +1,102 @@
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Gestión de Usuarios</h1>
+    <button class="btn btn-primary" (click)="openCreateModal()">
+      <i class="bi bi-plus-circle me-2"></i>Nuevo Usuario
+    </button>
+  </div>
+
+  <div *ngIf="filteredUsers.length === 0" class="text-center py-5">
+    <i class="bi bi-person-fill-slash display-1 text-muted mb-3"></i>
+    <h3>No hay usuarios registrados</h3>
+    <p class="text-muted">Haz clic en "Nuevo Usuario" para comenzar.</p>
+  </div>
+
+  <div *ngIf="filteredUsers.length > 0" class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Rol</th>
+          <th>Activo</th>
+          <th>Fecha Creación</th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of filteredUsers">
+          <td>{{ user.nombre }}</td>
+          <td>{{ user.username }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ getRoleText(user.role) }}</td>
+          <td>
+            <span class="badge" [ngClass]="user.activo ? 'bg-success' : 'bg-danger'">
+              {{ user.activo ? 'Sí' : 'No' }}
+            </span>
+          </td>
+          <td>{{ formatDate(user.fechaCreacion) }}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-primary me-2" (click)="openEditModal(user)">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" (click)="deleteUser(user)">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- User Create/Edit Modal -->
+  <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="userModalLabel">{{ isEditMode ? 'Editar Usuario' : 'Nuevo Usuario' }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+            <div class="mb-3">
+              <label for="nombre" class="form-label">Nombre</label>
+              <input type="text" class="form-control" id="nombre" formControlName="nombre">
+            </div>
+            <div class="mb-3">
+              <label for="username" class="form-label">Username</label>
+              <input type="text" class="form-control" id="username" formControlName="username">
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" class="form-control" id="email" formControlName="email">
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Contraseña</label>
+              <input type="password" class="form-control" id="password" formControlName="password">
+              <small class="form-text text-muted" *ngIf="!isEditMode">Mínimo 6 caracteres.</small>
+              <small class="form-text text-muted" *ngIf="isEditMode">Dejar en blanco para no cambiar.</small>
+            </div>
+            <div class="mb-3">
+              <label for="role" class="form-label">Rol</label>
+              <select class="form-select" id="role" formControlName="role">
+                <option *ngFor="let role of roles" [value]="role">{{ getRoleText(role) }}</option>
+              </select>
+            </div>
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" id="activo" formControlName="activo">
+              <label class="form-check-label" for="activo">Activo</label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary" (click)="onSubmit()" [disabled]="userForm.invalid">
+            {{ isEditMode ? 'Guardar Cambios' : 'Crear Usuario' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

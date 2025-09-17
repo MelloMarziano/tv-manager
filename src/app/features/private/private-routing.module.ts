@@ -41,6 +41,13 @@ const routes: Routes = [
             (m) => m.TelevisoresPageModule
           ),
       },
+      {
+        path: 'users',
+        // canActivate: [roleGuard],
+        // data: { roles: ['Admin'] }, // Asumiendo que solo los administradores gestionan usuarios
+        loadChildren: () =>
+          import('./pages/users/users.module').then((m) => m.UsersPageModule),
+      },
     ],
   },
 ];

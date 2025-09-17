@@ -8,6 +8,8 @@ export interface SidebarMenuItem {
   name: string;
   icon: SafeHtml;
   route: string;
+  iconColor: string;
+  roles?: string[]; // Añadido para control de acceso por rol
 }
 
 export interface SidebarMenuSection {
@@ -22,30 +24,41 @@ export interface SidebarMenuSection {
 })
 export class SidebarComponent implements OnInit {
   yearActual = new Date().getFullYear();
-  filteredSidebarMenu = [
+  sidebarMenu: SidebarMenuItem[] = [
     {
       name: 'Dashboard',
       icon: 'bi-graph-up',
       iconColor: '#38bdf8', // verde menta
       route: '/dashboard',
+      // roles: ['admin', 'editor', 'normal'],
     },
     {
       name: 'Clientes',
       icon: 'bi-person',
       iconColor: '#38bdf8',
       route: '/clientes',
+      // roles: ['admin', 'editor', 'normal'],
     },
     {
       name: 'Televisores',
       icon: 'bi-tv',
       iconColor: '#38bdf8',
       route: '/televisores',
+      // roles: ['admin', 'editor', 'normal'],
+    },
+    {
+      name: 'Usuarios',
+      icon: 'bi-people',
+      iconColor: '#38bdf8',
+      route: '/users',
+      // roles: ['admin'], // Solo administradores pueden ver esta opción
     },
     {
       name: 'Ajustes',
       icon: 'bi-sliders',
       iconColor: '#38bdf8',
       route: '/settings',
+      // roles: ['admin', 'editor', 'normal'],
     },
   ];
 
@@ -53,12 +66,12 @@ export class SidebarComponent implements OnInit {
 
   userRole = localStorage.getItem('role') || '';
 
-  //   get visibleSidebarMenu() {
-  //     return this.filteredSidebarMenu.filter((item) => {
-  //       if (!item.roles) return true;
-  //       return item.roles.includes(this.userRole);
-  //     });
-  //   }
+  get filteredSidebarMenu(): SidebarMenuItem[] {
+    return this.sidebarMenu.filter((item) => {
+      if (!item.roles) return true;
+      return item.roles.includes(this.userRole);
+    });
+  }
 
   ngOnInit() {
     this.router.events.subscribe((event) => {
