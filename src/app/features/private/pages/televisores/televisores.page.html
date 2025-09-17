@@ -114,6 +114,35 @@
             <ng-template #noImages>
               <div class="text-center py-5"><i class="bi bi-image-alt display-1 text-muted"></i><h4 class="mt-3">No hay imágenes</h4></div>
             </ng-template>
+
+            <div class="upload-section mt-4 p-4 border rounded bg-light">
+              <div class="drop-zone text-center p-4 border border-dashed rounded"
+                   [class.is-drag-over]="isDragOver"
+                   (dragover)="onDragOver($event)"
+                   (dragleave)="onDragLeave($event)"
+                   (drop)="onMultipleDrop($event)">
+                <i class="bi bi-cloud-arrow-up display-4 text-muted"></i>
+                <p class="mt-3 text-muted">Arrastra y suelta imágenes aquí o haz clic para seleccionar</p>
+                <input type="file" multiple accept="image/*" (change)="onMultipleFileSelect($event)" hidden #fileInput>
+                <button type="button" class="btn btn-outline-primary" (click)="fileInput.click()">Seleccionar Archivos</button>
+              </div>
+
+              <div *ngIf="selectedFiles.length > 0" class="selected-files mt-3">
+                <h5>Archivos seleccionados:</h5>
+                <ul class="list-group">
+                  <li *ngFor="let file of selectedFiles; let i = index" class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ file.name }}
+                    <button type="button" class="btn btn-sm btn-danger" (click)="removeSelectedFile(i)">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </li>
+                </ul>
+                <button type="button" class="btn btn-success mt-3" (click)="uploadMultipleImages()" [disabled]="isUploading">
+                  <span *ngIf="isUploading" class="spinner-border spinner-border-sm me-2"></span>
+                  Subir Imágenes
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Step 2: Schedule (Timeline Layout) -->

@@ -414,16 +414,39 @@ export class TelevisoresPage implements OnInit {
   onMultipleFileSelect(event: any): void { this.selectedFiles = Array.from(event.target.files); }
   removeSelectedFile(index: number): void { this.selectedFiles.splice(index, 1); }
   
-  uploadMultipleImages(): void {
-    if (!this.selectedTv || this.selectedFiles.length === 0) return;
+  async uploadMultipleImages(): Promise<void> {
+    if (!this.selectedTv || this.selectedFiles.length === 0) {
+      this.snackbarService.presentToastWarning('No hay imágenes seleccionadas para subir.');
+      return;
+    }
+
     this.isUploading = true;
-    setTimeout(() => {
-      this.isUploading = false;
-      this.snackbarService.presentToastSuccess(`${this.selectedFiles.length} imágenes subidas (simulación)`);
+    const uploadPromises: Promise<any>[] = [];
+    const clienteId = this.selectedTv.clienteId ?? undefined; // Asumiendo que el televisor tiene un clienteId
+
+    for (const file of this.selectedFiles) {
+      const nombreImagen = file.name.split('.').slice(0, -1).join('.'); // Nombre sin extensión
+      const uploadObservable = this.imagenService.uploadImagen(
+        file,
+        this.selectedTv.id,
+        nombreImagen,
+        clienteId
+      );
+      uploadPromises.push(lastValueFrom(uploadObservable));
+    }
+
+    try {
+      await Promise.all(uploadPromises);
+      this.snackbarService.presentToastSuccess(`${this.selectedFiles.length} imágenes subidas con éxito.`);
       this.selectedFiles = [];
-      this.loadTvImages(this.selectedTv!.id);
-      this.loadTelevisores();
-    }, 1500);
+      await this.loadTvImages(this.selectedTv.id);
+      this.loadTelevisores(); // Para actualizar el conteo de imágenes en la tarjeta del TV
+    } catch (error) {
+      console.error('Error al subir una o más imágenes:', error);
+      this.snackbarService.presentToastDanger('Error al subir una o más imágenes.');
+    } finally {
+      this.isUploading = false;
+    }
   }
 
   deleteImage(image: ImagenTv): void {
