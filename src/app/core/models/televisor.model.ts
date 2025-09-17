@@ -1,11 +1,15 @@
 export interface Televisor {
   id: string;
-  clienteId: string;
+  clienteId: string | null;
+  clienteNombre?: string;
   nombre: string;
   ubicacion: string;
   activo: boolean;
+  estado: 'Activo' | 'Desconectado' | 'En_linea';
+  ultimaConexion: Date;
   fechaCreacion: Date;
   configuracion: ConfiguracionTelevisor;
+  imagenes?: number;
 }
 
 export interface ConfiguracionTelevisor {
@@ -15,10 +19,12 @@ export interface ConfiguracionTelevisor {
 }
 
 export interface CreateTelevisorRequest {
-  clienteId: string;
+  clienteId?: string | null;
+  clienteNombre?: string;
   nombre: string;
   ubicacion: string;
   activo?: boolean;
+  estado?: 'Activo' | 'Desconectado' | 'En_linea';
   configuracion?: Partial<ConfiguracionTelevisor>;
 }
 

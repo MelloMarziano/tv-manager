@@ -14,33 +14,33 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 const modules = [
-    MatToolbarModule,
-    MatIconModule,
-    MatButtonModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatInputModule,
-    MatFormFieldModule,
-    MatNativeDateModule,
-    MatDatepickerModule,
-    MatChipsModule,
-    MatDialogModule,
-    MatStepperModule,
-    MatSelectModule,
-    MatProgressSpinnerModule,
-    MatTooltipModule
+  MatToolbarModule,
+  MatIconModule,
+  MatButtonModule,
+  MatTableModule,
+  MatPaginatorModule,
+  MatSortModule,
+  MatInputModule,
+  MatFormFieldModule,
+  MatNativeDateModule,
+  MatDatepickerModule,
+  MatChipsModule,
+  MatDialogModule,
+  MatStepperModule,
+  MatSelectModule,
+  MatProgressSpinnerModule,
+  MatProgressBarModule,
+  MatCheckboxModule,
+  MatTooltipModule,
 ];
 @NgModule({
-    imports: [
-        ...modules
-    ],
-    providers: [],
-    exports: [
-        ...modules
-    ]
+  imports: [...modules],
+  providers: [],
+  exports: [...modules],
 })
-export class MaterialModuleCustom { }
+export class MaterialModuleCustom {}

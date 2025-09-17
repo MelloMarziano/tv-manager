@@ -15,7 +15,6 @@ import { SidebarComponent } from './components/sidebar/sidebar.component';
 //   return acc;
 // }, {} as any);
 
-
 @NgModule({
   imports: [
     CommonModule,
@@ -24,14 +23,8 @@ import { SidebarComponent } from './components/sidebar/sidebar.component';
     PrivateRoutingModule,
     // LucideAngularModule.pick(lucideIcons),
   ],
-  declarations: [
-    PrivatePage,
-    AppbarComponent,
-    SidebarComponent
-  ],
-  exports: [
-  ],
+  declarations: [PrivatePage, AppbarComponent, SidebarComponent],
+  exports: [CommonModule, ReactiveFormsModule, FormsModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-
 })
-export class PrivateModule { }
+export class PrivateModule {}

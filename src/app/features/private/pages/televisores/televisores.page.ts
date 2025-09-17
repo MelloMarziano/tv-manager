@@ -1,39 +1,34 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Location } from '@angular/common';
+import { TelevisorService } from '../../../../core/services/televisor.service';
+import { ClienteService } from '../../../../core/services/cliente.service';
+import { ImagenService } from '../../../../core/services/imagen.service';
+import { SnackbarService } from '../../../../core/services/snackbar.service';
+import { CreateTelevisorRequest, Televisor } from '../../../../core/models/televisor.model';
+import { Cliente } from '../../../../core/models/cliente.model';
+import { ImagenTv, HorarioImagen, DiaSemana } from '../../../../core/models/imagen.model';
+import { lastValueFrom, take } from 'rxjs';
 
-interface Televisor {
-  id: number;
-  nombre: string;
-  ubicacion: string;
-  resolucion: string;
+declare const bootstrap: any;
+
+// --- INTERFACES LOCALES ---
+interface TelevisorLocal extends Televisor {
+  imagenesCount: number;
   estado: 'Activo' | 'Desconectado' | 'En_linea';
-  ultimaConexion: string;
-  imagenes: number;
-  clienteId: number;
-  clienteNombre: string;
+  resolucion: string;
 }
 
-interface ImagenTv {
-  id: number;
-  nombre: string;
-  url: string;
-  archivo?: File;
-  horarios: HorarioImagen[];
-  fechaCreacion: string;
+interface ImagenTvLocal extends ImagenTv {
+  uiColor: string;
+  showDetails?: boolean; // Propiedad para controlar la visibilidad de los detalles en la tabla
 }
 
-interface HorarioImagen {
-  id: number;
-  horaInicio: string;
-  horaFin: string;
-  dias: DiaSemana[];
-}
-
-interface DiaSemana {
-  value: number;
-  label: string;
+interface TimeSlot {
+  time: string;
+  status: 'available' | 'occupied' | 'selected';
+  occupiedBy?: string;
+  color?: string;
 }
 
 @Component({
@@ -42,631 +37,404 @@ interface DiaSemana {
   styleUrls: ['./televisores.page.scss'],
 })
 export class TelevisoresPage implements OnInit {
-  // Form
+  // Forms
   newTvForm!: FormGroup;
-  showNewTvModal = false;
+  scheduleForm!: FormGroup;
 
-  // Data
-  allTvs: Televisor[] = [];
-  filteredTvs: Televisor[] = [];
-  
-  // Filters
-  searchTerm = '';
-  selectedFilter = 'todos';
-
-  // Route params
-  clienteId: number | null = null;
+  // Estado del Componente
+  allTvs: TelevisorLocal[] = [];
+  filteredTvs: TelevisorLocal[] = [];
+  clientesDisponibles: Cliente[] = [];
+  selectedTv: TelevisorLocal | null = null;
+  selectedTvImages: ImagenTvLocal[] = [];
+  selectedImage: ImagenTvLocal | null = null;
+  clienteId: string | null = null;
   clienteNombre = '';
-
-  // UI State
   pageTitle = '';
   pageSubtitle = '';
   emptyStateMessage = '';
+  isUploading = false;
+  guardandoHorario = false;
 
-  // Image Management Modal
+  // Estado del Modal
   showImageModal = false;
-  selectedTv: Televisor | null = null;
-  selectedTvImages: ImagenTv[] = [];
   isDragOver = false;
-  editingImage: ImagenTv | null = null;
-  
-  // Modal Steps
   currentModalStep: 'images' | 'schedule' = 'images';
-  
-  // Schedule Programming Modal
-  showScheduleModal = false;
-  scheduleForm!: FormGroup;
-  selectedImage: ImagenTv | null = null;
-  selectedDays: number[] = [];
-  
-  // Days of the week
+  selectedFiles: File[] = [];
+
+  // Datos y Estado de Programación
+  private colorPalette: string[] = ['#3498db', '#2ecc71', '#e74c3c', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
   diasSemana: DiaSemana[] = [
-    { value: 1, label: 'Lunes' },
-    { value: 2, label: 'Martes' },
-    { value: 3, label: 'Miércoles' },
-    { value: 4, label: 'Jueves' },
-    { value: 5, label: 'Viernes' },
-    { value: 6, label: 'Sábado' },
-    { value: 0, label: 'Domingo' }
+    { value: 1, label: 'Lunes' }, { value: 2, label: 'Martes' }, { value: 3, label: 'Miércoles' },
+    { value: 4, label: 'Jueves' }, { value: 5, label: 'Viernes' }, { value: 6, label: 'Sábado' },
+    { value: 0, label: 'Domingo' },
   ];
-
-  // Stats
-  get totalTvs(): number {
-    return this.filteredTvs.length;
-  }
-
-  get activeTvs(): number {
-    return this.filteredTvs.filter(tv => tv.estado === 'Activo').length;
-  }
-
-  get onlineTvs(): number {
-    return this.filteredTvs.filter(tv => tv.estado === 'En_linea').length;
-  }
+  selectedDays: number[] = [];
+  timeSlots: TimeSlot[] = [];
+  selectionStart: TimeSlot | null = null;
 
   constructor(
-    private formBuilder: FormBuilder,
+    private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
-    private location: Location
-  ) {
-    this.initializeForm();
-    this.initializeMockData();
-  }
+    private televisorService: TelevisorService,
+    private clienteService: ClienteService,
+    private imagenService: ImagenService,
+    private snackbarService: SnackbarService
+  ) {}
 
-  ngOnInit() {
-    this.route.params.subscribe(params => {
-      this.clienteId = params['clienteId'] ? +params['clienteId'] : null;
-      this.setupPageContent();
-      this.filterTvsByClient();
+  ngOnInit(): void {
+    this.initializeForms();
+    this.route.queryParams.subscribe(params => {
+      this.clienteId = params['clienteId'] || null;
+      this.loadInitialData();
     });
   }
 
-  private initializeForm(): void {
-    this.newTvForm = this.formBuilder.group({
+  private initializeForms(): void {
+    this.newTvForm = this.fb.group({
       nombre: ['', [Validators.required, Validators.minLength(2)]],
-      ubicacion: [''],
-      resolucion: [''],
-      activo: [true]
+      ubicacion: ['', Validators.required],
+      resolucion: ['1920x1080', Validators.required],
+      clienteId: ['', this.clienteId ? [] : [Validators.required]],
     });
-
-    this.scheduleForm = this.formBuilder.group({
+    this.scheduleForm = this.fb.group({
       horaInicio: ['', Validators.required],
       horaFin: ['', Validators.required],
-      dias: [[], Validators.required]
-    });
+    }, { validators: this.timeRangeValidator });
   }
 
-  private initializeMockData(): void {
-    this.allTvs = [
-      {
-        id: 1,
-        nombre: 'Pantalla Principal',
-        ubicacion: 'Entrada principal',
-        resolucion: '1920x1080',
-        estado: 'Activo',
-        ultimaConexion: '15/09/2025 22:49',
-        imagenes: 5,
-        clienteId: 1,
-        clienteNombre: 'Restaurante El Mediterráneo'
-      },
-      {
-        id: 2,
-        nombre: 'TV Cocina',
-        ubicacion: 'Área de cocina',
-        resolucion: '1366x768',
-        estado: 'En_linea',
-        ultimaConexion: '15/09/2025 22:39',
-        imagenes: 3,
-        clienteId: 1,
-        clienteNombre: 'Restaurante El Mediterráneo'
-      },
-      {
-        id: 3,
-        nombre: 'Pantalla Lobby',
-        ubicacion: 'Recepción principal',
-        resolucion: '3840x2160',
-        estado: 'Activo',
-        ultimaConexion: '15/09/2025 23:15',
-        imagenes: 12,
-        clienteId: 2,
-        clienteNombre: 'Hotel Plaza Central'
-      },
-      {
-        id: 4,
-        nombre: 'TV Habitación 101',
-        ubicacion: 'Habitación 101',
-        resolucion: '1920x1080',
-        estado: 'Desconectado',
-        ultimaConexion: '14/09/2025 18:30',
-        imagenes: 5,
-        clienteId: 2,
-        clienteNombre: 'Hotel Plaza Central'
-      },
-      {
-        id: 5,
-        nombre: 'Pantalla Menú',
-        ubicacion: 'Área de pedidos',
-        resolucion: '1920x1080',
-        estado: 'Activo',
-        ultimaConexion: '15/09/2025 22:55',
-        imagenes: 6,
-        clienteId: 3,
-        clienteNombre: 'Café Luna'
-      },
-      {
-        id: 6,
-        nombre: 'TV Probadores',
-        ubicacion: 'Área de probadores',
-        resolucion: '1366x768',
-        estado: 'En_linea',
-        ultimaConexion: '15/09/2025 21:45',
-        imagenes: 15,
-        clienteId: 4,
-        clienteNombre: 'Tienda Fashion Style'
-      },
-      {
-        id: 7,
-        nombre: 'Pantalla Cardio',
-        ubicacion: 'Zona cardiovascular',
-        resolucion: '2560x1440',
-        estado: 'Activo',
-        ultimaConexion: '15/09/2025 23:10',
-        imagenes: 4,
-        clienteId: 5,
-        clienteNombre: 'Gimnasio FitCenter'
-      },
-      {
-        id: 8,
-        nombre: 'TV Sala Espera',
-        ubicacion: 'Sala de espera',
-        resolucion: '1920x1080',
-        estado: 'Desconectado',
-        ultimaConexion: '15/09/2025 19:20',
-        imagenes: 7,
-        clienteId: 6,
-        clienteNombre: 'Clínica Dental Sonrisa'
+  private timeRangeValidator(group: FormGroup): { [key: string]: any } | null {
+    const start = group.get('horaInicio')?.value;
+    const end = group.get('horaFin')?.value;
+    return start && end && start >= end ? { invalidTimeRange: true } : null;
+  }
+
+  // --- CARGA DE DATOS ---
+  private async loadInitialData(): Promise<void> {
+    this.setupPageContent();
+    if (this.clienteId) {
+      try {
+        const cliente = await lastValueFrom(this.clienteService.getClienteById(this.clienteId).pipe(take(1)));
+        this.clienteNombre = cliente?.nombre || '';
+      } catch (error) {
+        this.snackbarService.presentToastDanger('Error al cargar datos del cliente.');
+        this.router.navigate(['/private/televisores']);
+        return;
       }
-    ];
+    } else {
+      this.clienteService.getClientes().pipe(take(1)).subscribe({
+        next: clientes => this.clientesDisponibles = clientes,
+        error: err => {
+          console.error("Error al cargar clientes:", err);
+          this.snackbarService.presentToastDanger("No se pudieron cargar los clientes.");
+        }
+      });
+    }
+    this.loadTelevisores();
   }
 
   private setupPageContent(): void {
-    if (this.clienteId) {
-      // Buscar el nombre del cliente
-      const cliente = this.allTvs.find(tv => tv.clienteId === this.clienteId);
-      this.clienteNombre = cliente ? cliente.clienteNombre : 'Cliente';
-      this.pageTitle = `TVs de ${this.clienteNombre}`;
-      this.pageSubtitle = `Gestiona los televisores de ${this.clienteNombre}`;
-      this.emptyStateMessage = `No se encontraron televisores para ${this.clienteNombre}`;
-    } else {
-      this.pageTitle = 'Televisores';
-      this.pageSubtitle = '';
-      this.clienteNombre = '';
-      this.emptyStateMessage = 'No se encontraron televisores en el sistema';
-    }
+    this.pageTitle = this.clienteId ? `Televisores de ${this.clienteNombre}` : 'Todos los Televisores';
+    this.pageSubtitle = this.clienteId ? 'Gestiona los televisores de este cliente' : 'Gestiona todos los televisores del sistema';
+    this.emptyStateMessage = this.clienteId ? 'Este cliente aún no tiene televisores.' : 'No hay televisores en el sistema.';
   }
 
-  private filterTvsByClient(): void {
-    if (this.clienteId) {
-      this.filteredTvs = this.allTvs.filter(tv => tv.clienteId === this.clienteId);
-    } else {
-      this.filteredTvs = [...this.allTvs];
-    }
-    this.applyFilters();
-  }
-
-  onSearch(): void {
-    this.applyFilters();
-  }
-
-  onFilterChange(): void {
-    this.applyFilters();
-  }
-
-  private applyFilters(): void {
-    let tvs = this.clienteId 
-      ? this.allTvs.filter(tv => tv.clienteId === this.clienteId)
-      : [...this.allTvs];
-
-    // Apply search filter
-    if (this.searchTerm.trim()) {
-      const searchLower = this.searchTerm.toLowerCase();
-      tvs = tvs.filter(tv => 
-        tv.nombre.toLowerCase().includes(searchLower) ||
-        tv.ubicacion.toLowerCase().includes(searchLower) ||
-        tv.resolucion.toLowerCase().includes(searchLower) ||
-        tv.clienteNombre.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Apply status filter
-    if (this.selectedFilter !== 'todos') {
-      switch (this.selectedFilter) {
-        case 'activo':
-          tvs = tvs.filter(tv => tv.estado === 'Activo');
-          break;
-        case 'desconectado':
-          tvs = tvs.filter(tv => tv.estado === 'Desconectado');
-          break;
-        case 'en_linea':
-          tvs = tvs.filter(tv => tv.estado === 'En_linea');
-          break;
+  private loadTelevisores(): void {
+    this.televisorService.getTelevisores().pipe(take(1)).subscribe({
+      next: televisores => {
+        this.allTvs = televisores.map(tv => this.mapToTelevisorLocal(tv));
+        this.filteredTvs = this.clienteId ? this.allTvs.filter(tv => tv.clienteId === this.clienteId) : this.allTvs;
+        this.loadTvImageCounts();
+      },
+      error: err => {
+        console.error("Error al cargar televisores:", err);
+        this.snackbarService.presentToastDanger("Error fatal: No se pudieron cargar los televisores.");
+        this.filteredTvs = [];
       }
-    }
-
-    this.filteredTvs = tvs;
-  }
-
-  goBack(): void {
-    this.location.back();
-  }
-
-  openNewTvModal(): void {
-    this.showNewTvModal = true;
-    this.newTvForm.reset({
-      nombre: '',
-      ubicacion: '',
-      resolucion: '',
-      activo: true
     });
   }
 
-  closeNewTvModal(): void {
-    this.showNewTvModal = false;
-    this.newTvForm.reset();
+  private mapToTelevisorLocal(tv: Televisor): TelevisorLocal {
+    return { ...tv, imagenesCount: 0, estado: tv.estado, resolucion: tv.configuracion?.resolucion || 'N/A' };
   }
 
-  onSubmitNewTv(): void {
-    if (this.newTvForm.valid) {
-      const formValue = this.newTvForm.value;
-      
-      // Determinar el cliente para el nuevo TV
-      let targetClienteId = this.clienteId || 1; // Default al primer cliente si no hay clienteId
-      let targetClienteNombre = this.clienteNombre || 'Cliente por defecto';
-      
-      if (!this.clienteId) {
-        // Si estamos en vista general, usar el primer cliente como ejemplo
-        const firstClient = this.allTvs[0];
-        targetClienteId = firstClient.clienteId;
-        targetClienteNombre = firstClient.clienteNombre;
-      }
+  private loadTvImageCounts(): void {
+    this.filteredTvs.forEach(tv => {
+      this.imagenService.getImagenesByTelevisor(tv.id).pipe(take(1)).subscribe({
+        next: imgs => tv.imagenesCount = imgs.length,
+        error: err => {
+          console.error(`Error al contar imágenes para TV ${tv.id}:`, err);
+          tv.imagenesCount = 0;
+        }
+      });
+    });
+  }
 
-      const newTv: Televisor = {
-        id: Math.max(...this.allTvs.map(tv => tv.id)) + 1,
-        nombre: formValue.nombre,
-        ubicacion: formValue.ubicacion || 'Sin ubicación',
-        resolucion: formValue.resolucion || '1920x1080',
-        estado: formValue.activo ? 'Activo' : 'Desconectado',
-        ultimaConexion: new Date().toLocaleString('es-ES', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        imagenes: 0,
-        clienteId: targetClienteId,
-        clienteNombre: targetClienteNombre
-      };
+  // --- GESTIÓN DE MODALES ---
+  openNewTvModal(): void {
+    new bootstrap.Modal(document.getElementById('newTvModal')).show();
+  }
 
-      this.allTvs.push(newTv);
-      this.filterTvsByClient();
-      this.closeNewTvModal();
-
-      console.log('Nuevo televisor creado:', newTv);
+  async onSubmitNewTv(): Promise<void> {
+    if (this.newTvForm.invalid) {
+      this.snackbarService.presentToastWarning('Por favor, completa todos los campos requeridos.');
+      return;
+    }
+    const form = this.newTvForm.value;
+    const request: CreateTelevisorRequest = {
+      nombre: form.nombre, ubicacion: form.ubicacion, clienteId: this.clienteId || form.clienteId, activo: true,
+      configuracion: { resolucion: form.resolucion, orientacion: 'horizontal', tiempoTransicion: 5000 }
+    };
+    try {
+      await this.televisorService.createTelevisor(request);
+      this.snackbarService.presentToastSuccess('Televisor creado con éxito');
+      this.loadTelevisores();
+      bootstrap.Modal.getInstance(document.getElementById('newTvModal'))?.hide();
+    } catch (err) {
+      this.snackbarService.presentToastDanger('Error al crear el televisor');
     }
   }
 
-  // Image Management Methods
-  openImageModal(tv: Televisor): void {
+  openImageModal(tv: TelevisorLocal): void {
     this.selectedTv = tv;
-    this.loadTvImages(tv.id);
     this.showImageModal = true;
+    this.loadTvImages(tv.id);
   }
 
   closeImageModal(): void {
     this.showImageModal = false;
-    this.selectedTv = null;
-    this.selectedTvImages = [];
-    this.editingImage = null;
-  }
-
-  private loadTvImages(tvId: number): void {
-    // Simular carga de imágenes del televisor con la imagen proporcionada
-    const testImageUrl = 'https://firebasestorage.googleapis.com/v0/b/tv-menu-97213.firebasestorage.app/o/TVMenuImages%2FNatureBlz-Timestamp(seconds%3D1730862614%2C%20nanoseconds%3D962893000)?alt=media&token=6e79c3b8-3900-4b34-ac20-8b621c1d44d6';
-    
-    this.selectedTvImages = [
-      {
-        id: 1,
-        nombre: 'Menú Desayuno - Naturaleza',
-        url: testImageUrl,
-        horarios: [
-          {
-            id: 1,
-            horaInicio: '06:00',
-            horaFin: '10:00',
-            dias: [
-              { value: 1, label: 'Lunes' },
-              { value: 2, label: 'Martes' },
-              { value: 3, label: 'Miércoles' },
-              { value: 4, label: 'Jueves' },
-              { value: 5, label: 'Viernes' }
-            ]
-          }
-        ],
-        fechaCreacion: '15/01/2025 10:30'
-      },
-      {
-        id: 2,
-        nombre: 'Menú Almuerzo - Naturaleza',
-        url: testImageUrl,
-        horarios: [
-          {
-            id: 2,
-            horaInicio: '12:00',
-            horaFin: '16:00',
-            dias: [
-              { value: 1, label: 'Lunes' },
-              { value: 2, label: 'Martes' },
-              { value: 3, label: 'Miércoles' },
-              { value: 4, label: 'Jueves' },
-              { value: 5, label: 'Viernes' },
-              { value: 6, label: 'Sábado' },
-              { value: 0, label: 'Domingo' }
-            ]
-          }
-        ],
-        fechaCreacion: '15/01/2025 11:15'
-      },
-      {
-        id: 3,
-        nombre: 'Menú Cena - Naturaleza',
-        url: testImageUrl,
-        horarios: [
-          {
-            id: 3,
-            horaInicio: '18:00',
-            horaFin: '22:00',
-            dias: [
-              { value: 6, label: 'Sábado' },
-              { value: 0, label: 'Domingo' }
-            ]
-          }
-        ],
-        fechaCreacion: '15/01/2025 12:00'
-      },
-      {
-        id: 4,
-        nombre: 'Promociones Especiales',
-        url: testImageUrl,
-        horarios: [],
-        fechaCreacion: '15/01/2025 14:30'
-      },
-      {
-        id: 5,
-        nombre: 'Menú Bebidas - Naturaleza',
-        url: testImageUrl,
-        horarios: [
-          {
-            id: 4,
-            horaInicio: '10:00',
-            horaFin: '23:00',
-            dias: [
-              { value: 1, label: 'Lunes' },
-              { value: 2, label: 'Martes' },
-              { value: 3, label: 'Miércoles' },
-              { value: 4, label: 'Jueves' },
-              { value: 5, label: 'Viernes' },
-              { value: 6, label: 'Sábado' },
-              { value: 0, label: 'Domingo' }
-            ]
-          }
-        ],
-        fechaCreacion: '15/01/2025 15:45'
-      }
-    ];
-  }
-
-  // Drag and Drop Methods
-  onDragOver(event: DragEvent): void {
-    event.preventDefault();
-    this.isDragOver = true;
-  }
-
-  onDragLeave(event: DragEvent): void {
-    event.preventDefault();
-    this.isDragOver = false;
-  }
-
-  onDrop(event: DragEvent): void {
-    event.preventDefault();
-    this.isDragOver = false;
-    
-    const files = event.dataTransfer?.files;
-    if (files) {
-      this.handleFiles(files);
-    }
-  }
-
-  onFileSelect(event: any): void {
-    const files = event.target.files;
-    if (files) {
-      this.handleFiles(files);
-    }
-  }
-
-  private handleFiles(files: FileList): void {
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (file.type.startsWith('image/')) {
-        this.addNewImage(file);
-      }
-    }
-  }
-
-  private addNewImage(file: File): void {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const newImage: ImagenTv = {
-        id: Math.max(...this.selectedTvImages.map(img => img.id), 0) + 1,
-        nombre: file.name.split('.')[0],
-        url: e.target?.result as string,
-        archivo: file,
-        horarios: [],
-        fechaCreacion: new Date().toLocaleString('es-ES', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      };
-      this.selectedTvImages.push(newImage);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  editImage(image: ImagenTv): void {
-    this.editingImage = { ...image };
-  }
-
-  deleteImage(imageId: number): void {
-    if (confirm('¿Estás seguro de que quieres eliminar esta imagen?')) {
-      this.selectedTvImages = this.selectedTvImages.filter(img => img.id !== imageId);
-    }
-  }
-
-  saveImageChanges(): void {
-    if (this.editingImage) {
-      const index = this.selectedTvImages.findIndex(img => img.id === this.editingImage!.id);
-      if (index !== -1) {
-        this.selectedTvImages[index] = { ...this.editingImage };
-      }
-      this.editingImage = null;
-    }
-  }
-
-  cancelImageEdit(): void {
-    this.editingImage = null;
-  }
-
-  // Schedule Programming Methods
-  openScheduleModal(image: ImagenTv): void {
-    this.selectedImage = image;
-    this.selectedDays = [];
-    this.scheduleForm.reset();
-    this.currentModalStep = 'schedule';
-  }
-
-  closeScheduleModal(): void {
-    this.selectedImage = null;
-    this.selectedDays = [];
-    this.scheduleForm.reset();
     this.currentModalStep = 'images';
+    this.resetScheduleStep();
   }
 
-  // Método para volver al paso de imágenes
+  private async loadTvImages(tvId: string): Promise<void> {
+    try {
+      const images$ = this.imagenService.getImagenesByTelevisor(tvId).pipe(take(1));
+      const images = await lastValueFrom(images$);
+      this.selectedTvImages = images.map((img, index) => ({
+        ...img,
+        uiColor: this.colorPalette[index % this.colorPalette.length],
+        showDetails: false // Inicializa showDetails a false
+      }));
+    } catch (error) {
+      this.selectedTvImages = [];
+      this.snackbarService.presentToastDanger('No se pudieron cargar las imágenes.');
+    }
+  }
+
+  // --- LÓGICA DE PROGRAMACIÓN ---
+  programarImagen(image: ImagenTvLocal): void {
+    this.selectedImage = image;
+    this.currentModalStep = 'schedule';
+    this.resetScheduleStep();
+  }
+
   backToImages(): void {
     this.currentModalStep = 'images';
-    this.selectedImage = null;
+  }
+
+  private resetScheduleStep(): void {
+    this.selectionStart = null;
+    if (this.timeSlots.length > 0) {
+      this.timeSlots.forEach(s => { if(s.status === 'selected') s.status = 'available' });
+    }
+    this.scheduleForm.reset({ horaInicio: '', horaFin: '' });
     this.selectedDays = [];
-    this.scheduleForm.reset();
+    this.timeSlots = [];
   }
 
-  // Método para saltar la programación de horarios
-  skipScheduling(): void {
-    if (this.selectedImage) {
-      // La imagen se mostrará 24/7 por defecto (sin horarios específicos)
-      console.log(`Imagen "${this.selectedImage.nombre}" configurada para mostrarse 24/7`);
+  private static toMinutes(time: string): number {
+    if (!time) return 0;
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  private getImageInitials(name: string): string {
+    if (!name) return '?';
+    const words = name.split(' ');
+    if (words.length > 1) {
+      return (words[0][0] + words[1][0]).toUpperCase();
     }
-    this.backToImages();
+    return name.substring(0, 2).toUpperCase();
   }
 
-  onDayToggle(day: DiaSemana): void {
-    const currentDays = this.scheduleForm.get('dias')?.value || [];
-    const dayIndex = currentDays.findIndex((d: DiaSemana) => d.value === day.value);
-    
-    if (dayIndex > -1) {
-      currentDays.splice(dayIndex, 1);
-    } else {
-      currentDays.push(day);
+  buildScheduleTimeline(): void {
+    if (this.selectedDays.length === 0) {
+      this.timeSlots = [];
+      return;
     }
-    
-    this.scheduleForm.patchValue({ dias: currentDays });
-  }
-
-  isDaySelected(day: DiaSemana): boolean {
-    const selectedDays = this.scheduleForm.get('dias')?.value || [];
-    return selectedDays.some((d: DiaSemana) => d.value === day.value);
-  }
-
-  getDaysText(dias: DiaSemana[]): string {
-    if (dias.length === 7) {
-      return 'Todos los días';
-    } else if (dias.length === 5 && !dias.some(d => d.value === 0 || d.value === 6)) {
-      return 'Lunes a Viernes';
-    } else if (dias.length === 2 && dias.some(d => d.value === 0) && dias.some(d => d.value === 6)) {
-      return 'Fines de semana';
-    } else {
-      return dias.map(d => d.label).join(', ');
+    const stepMinutes = 30;
+    const slots: TimeSlot[] = [];
+    for (let min = 0; min < 24 * 60; min += stepMinutes) {
+      const time = `${Math.floor(min / 60).toString().padStart(2, '0')}:${(min % 60).toString().padStart(2, '0')}`;
+      slots.push({ time, status: 'available' });
     }
-  }
-
-  addScheduleToImage(): void {
-    if (this.scheduleForm.valid && this.selectedImage) {
-      const formValue = this.scheduleForm.value;
-      const selectedDaysObjects = this.getSelectedDaysAsObjects();
-      
-      if (selectedDaysObjects.length > 0) {
-        const newSchedule: HorarioImagen = {
-          id: Date.now(),
-          horaInicio: formValue.horaInicio,
-          horaFin: formValue.horaFin,
-          dias: selectedDaysObjects
-        };
-
-        this.selectedImage.horarios.push(newSchedule);
-        console.log('Horario agregado:', newSchedule);
+    const allSchedules = this.selectedTvImages.flatMap(img => img.horarios.map(h => ({ ...h, imageName: img.nombre, color: img.uiColor })));
+    slots.forEach(slot => {
+      const slotStart = TelevisoresPage.toMinutes(slot.time);
+      const slotEnd = slotStart + stepMinutes;
+      for (const schedule of allSchedules) {
+        if (schedule.dias.some(d => this.selectedDays.includes(d.value))) {
+          const scheduleStart = TelevisoresPage.toMinutes(schedule.horaInicio);
+          const scheduleEnd = TelevisoresPage.toMinutes(schedule.horaFin);
+          if (slotStart < scheduleEnd && slotEnd > scheduleStart) {
+            slot.status = 'occupied';
+            slot.occupiedBy = schedule.imageName;
+            slot.color = schedule.color;
+            break;
+          }
+        }
       }
-
-      this.backToImages();
-    }
+    });
+    this.timeSlots = slots;
   }
 
-  removeSchedule(image: ImagenTv, scheduleId: number): void {
-    if (confirm('¿Estás seguro de que quieres eliminar este horario?')) {
-      image.horarios = image.horarios.filter(h => h.id !== scheduleId);
+  onTimeSlotClick(clickedSlot: TimeSlot): void {
+    if (clickedSlot.status === 'occupied') return;
+    if (this.selectionStart === clickedSlot) {
+      this.clearScheduleSelection();
+      return;
     }
-  }
-
-  // Métodos de gestión de días
-  onDayChange(day: DiaSemana): void {
-    const index = this.selectedDays.indexOf(day.value);
-    if (index > -1) {
-      this.selectedDays.splice(index, 1);
+    if (!this.selectionStart) {
+      this.selectionStart = clickedSlot;
+      clickedSlot.status = 'selected';
+      this.scheduleForm.patchValue({ horaInicio: clickedSlot.time, horaFin: '' });
     } else {
-      this.selectedDays.push(day.value);
+      const startIndex = this.timeSlots.indexOf(this.selectionStart);
+      const endIndex = this.timeSlots.indexOf(clickedSlot);
+      const [start, end] = startIndex > endIndex ? [endIndex, startIndex] : [startIndex, endIndex];
+      const range = this.timeSlots.slice(start, end + 1);
+      if (range.some(slot => slot.status === 'occupied')) {
+        this.snackbarService.presentToastDanger('La selección no puede cruzar un horario ocupado.');
+        this.clearScheduleSelection();
+        return;
+      }
+      this.clearScheduleSelection(false);
+      range.forEach(slot => slot.status = 'selected');
+      const finalSlotIndex = end + 1;
+      const finalTime = finalSlotIndex < this.timeSlots.length ? this.timeSlots[finalSlotIndex].time : '23:59';
+      this.scheduleForm.patchValue({ horaInicio: this.timeSlots[start].time, horaFin: finalTime });
     }
   }
 
-  // Método para obtener los días seleccionados como objetos DiaSemana
+  clearScheduleSelection(resetForm: boolean = true): void {
+    this.timeSlots.forEach(slot => {
+      if (slot.status === 'selected') slot.status = 'available';
+    });
+    this.selectionStart = null;
+    if(resetForm) {
+      this.scheduleForm.reset({ horaInicio: '', horaFin: '' });
+    }
+  }
+
+  private checkScheduleConflict(newSchedule: { horaInicio: string; horaFin: string; dias: number[] }): { conflict: boolean; message: string } {
+    const allSchedules = this.selectedTvImages.flatMap(img => img.horarios.map(h => ({ ...h, imageName: img.nombre })));
+    const newStart = TelevisoresPage.toMinutes(newSchedule.horaInicio);
+    const newEnd = TelevisoresPage.toMinutes(newSchedule.horaFin);
+    for (const existing of allSchedules) {
+        const hasCommonDays = existing.dias.some(d => newSchedule.dias.includes(d.value));
+        if (hasCommonDays) {
+            const existingStart = TelevisoresPage.toMinutes(existing.horaInicio);
+            const existingEnd = TelevisoresPage.toMinutes(existing.horaFin);
+            if (newStart < existingEnd && existingStart < newEnd) {
+                return { conflict: true, message: `Conflicto con "${existing.imageName}" (${existing.horaInicio} - ${existing.horaFin})` };
+            }
+        }
+    }
+    return { conflict: false, message: '' };
+  }
+
+  async addScheduleToImage(): Promise<void> {
+    if (this.scheduleForm.invalid) { this.snackbarService.presentToastWarning('El rango de horas no es válido.'); return; }
+    if (this.selectedDays.length === 0) { this.snackbarService.presentToastWarning('Debes seleccionar al menos un día.'); return; }
+    const formValue = this.scheduleForm.value;
+    const newScheduleData = { ...formValue, dias: this.selectedDays };
+    const conflict = this.checkScheduleConflict(newScheduleData);
+    if (conflict.conflict) {
+      this.snackbarService.presentToastDanger(conflict.message);
+      return;
+    }
+    this.guardandoHorario = true;
+    const nuevoHorario: Omit<HorarioImagen, 'id'> = { ...formValue, dias: this.getSelectedDaysAsObjects() };
+    try {
+      await lastValueFrom(this.imagenService.agregarHorario(this.selectedImage!.id, nuevoHorario));
+      this.snackbarService.presentToastSuccess('Horario guardado');
+      await this.loadTvImages(this.selectedTv!.id);
+      this.backToImages();
+    } catch (error) {
+      this.snackbarService.presentToastDanger('Error al guardar el horario');
+    } finally {
+      this.guardandoHorario = false;
+    }
+  }
+
+  async removeSchedule(image: ImagenTv, scheduleId: string): Promise<void> {
+    if (!confirm('¿Eliminar este horario?')) return;
+    try {
+      await lastValueFrom(this.imagenService.eliminarHorario(image.id, scheduleId));
+      this.snackbarService.presentToastSuccess('Horario eliminado');
+      await this.loadTvImages(this.selectedTv!.id);
+    } catch {
+      this.snackbarService.presentToastDanger('Error al eliminar');
+    }
+  }
+
+  // --- SELECTOR DE DÍAS ---
+  onDayChange(day: DiaSemana): void {
+    const idx = this.selectedDays.indexOf(day.value);
+    if (idx > -1) this.selectedDays.splice(idx, 1); else this.selectedDays.push(day.value);
+    this.clearScheduleSelection();
+    this.buildScheduleTimeline();
+  }
+  selectAllDays(): void { this.selectedDays = this.diasSemana.map(d => d.value); this.clearScheduleSelection(); this.buildScheduleTimeline(); }
+  selectWeekdays(): void { this.selectedDays = [1, 2, 3, 4, 5]; this.clearScheduleSelection(); this.buildScheduleTimeline(); }
+  selectWeekends(): void { this.selectedDays = [6, 0]; this.clearScheduleSelection(); this.buildScheduleTimeline(); }
+  clearDays(): void { this.selectedDays = []; this.timeSlots = []; this.clearScheduleSelection(); }
   getSelectedDaysAsObjects(): DiaSemana[] {
-    return this.diasSemana.filter(dia => this.selectedDays.includes(dia.value));
+    return this.diasSemana.filter(d => this.selectedDays.includes(d.value));
   }
 
-  // Métodos de selección rápida de días
-  selectAllDays(): void {
-    this.selectedDays = [0, 1, 2, 3, 4, 5, 6];
+  // --- HELPERS Y OTROS ---
+  getDaysText(dias: DiaSemana[]): string {
+    if (!dias || dias.length === 0) return 'Sin días';
+    if (dias.length === 7) return 'Todos los días';
+    const dayNames: { [key: number]: string } = { 0: 'D', 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S' };
+    return dias.map(dia => dayNames[dia.value] || '?').join(', ');
+  }
+  is24_7(image: ImagenTv): boolean { return image.horarios.length === 0; }
+  
+  // Lógica de carga de archivos
+  onDragOver(event: DragEvent): void { event.preventDefault(); this.isDragOver = true; }
+  onDragLeave(event: DragEvent): void { event.preventDefault(); this.isDragOver = false; }
+  onMultipleDrop(event: DragEvent): void {
+    event.preventDefault(); this.isDragOver = false;
+    if (event.dataTransfer?.files) this.selectedFiles = Array.from(event.dataTransfer.files);
+  }
+  onMultipleFileSelect(event: any): void { this.selectedFiles = Array.from(event.target.files); }
+  removeSelectedFile(index: number): void { this.selectedFiles.splice(index, 1); }
+  
+  uploadMultipleImages(): void {
+    if (!this.selectedTv || this.selectedFiles.length === 0) return;
+    this.isUploading = true;
+    setTimeout(() => {
+      this.isUploading = false;
+      this.snackbarService.presentToastSuccess(`${this.selectedFiles.length} imágenes subidas (simulación)`);
+      this.selectedFiles = [];
+      this.loadTvImages(this.selectedTv!.id);
+      this.loadTelevisores();
+    }, 1500);
   }
 
-  selectWeekdays(): void {
-    this.selectedDays = [1, 2, 3, 4, 5];
-  }
-
-  selectWeekends(): void {
-    this.selectedDays = [0, 6];
-  }
-
-  clearDays(): void {
-    this.selectedDays = [];
+  deleteImage(image: ImagenTv): void {
+    if (!confirm('¿Estás seguro?')) return;
+    this.imagenService.deleteImagen(image).subscribe({
+      next: () => {
+        this.snackbarService.presentToastSuccess('Imagen eliminada');
+        this.loadTvImages(this.selectedTv!.id);
+        this.loadTelevisores();
+      },
+      error: (err) => this.snackbarService.presentToastDanger('Error al eliminar la imagen'),
+    });
   }
 }

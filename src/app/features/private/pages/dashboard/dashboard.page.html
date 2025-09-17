@@ -6,7 +6,7 @@
   </div>
 
   <!-- Tarjetas de Estadísticas -->
-  <div class="stats-grid">
+  <div class="stats-grid" *ngIf="!loading">
     <!-- Tarjeta Clientes -->
     <div class="stat-card">
       <div class="stat-icon">
@@ -42,16 +42,18 @@
         <span class="stat-detail">{{ statsData.imagenes.descripcion }}</span>
       </div>
     </div>
+  </div>
 
-    <!-- Tarjeta Programación -->
-    <div class="stat-card">
+  <!-- Loading state -->
+  <div class="stats-grid" *ngIf="loading">
+    <div class="stat-card loading-card" *ngFor="let item of [1,2,3]">
       <div class="stat-icon">
-        <i class="bi bi-calendar3-fill"></i>
+        <div class="loading-spinner"></div>
       </div>
       <div class="stat-content">
-        <h3 class="stat-number">{{ statsData.programacion.total }}</h3>
-        <p class="stat-label">Programación</p>
-        <span class="stat-detail">{{ statsData.programacion.descripcion }}</span>
+        <div class="loading-text"></div>
+        <div class="loading-text small"></div>
+        <div class="loading-text small"></div>
       </div>
     </div>
   </div>
@@ -85,7 +87,10 @@
         </h2>
       </div>
       <div class="card-content">
-        <div class="activity-item" *ngFor="let activity of recentActivities">
+        <div class="activity-item" *ngFor="let activity of recentActivities" [ngClass]="'activity-' + activity.type">
+          <div class="activity-icon">
+            <i class="bi {{ activity.icon }}"></i>
+          </div>
           <div class="activity-content">
             <h4 class="activity-title">{{ activity.title }}</h4>
             <p class="activity-description">{{ activity.description }}</p>
@@ -93,6 +98,10 @@
           <div class="activity-time">
             <span class="time-text">{{ activity.time }}</span>
           </div>
+        </div>
+        <div class="no-activities" *ngIf="recentActivities.length === 0">
+          <i class="bi bi-clock-history"></i>
+          <p>No hay actividades recientes</p>
         </div>
       </div>
     </div>

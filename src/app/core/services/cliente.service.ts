@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, combineLatest } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { Cliente, CreateClienteRequest, UpdateClienteRequest } from '../models/cliente.model';
+import { TelevisorService } from './televisor.service';
 
 @Injectable({
   providedIn: 'root'
@@ -10,16 +11,38 @@ import { Cliente, CreateClienteRequest, UpdateClienteRequest } from '../models/c
 export class ClienteService {
   private collection = 'clientes';
 
-  constructor(private firestore: AngularFirestore) {}
+  constructor(private firestore: AngularFirestore, private televisorService: TelevisorService) {}
 
   getClientes(): Observable<Cliente[]> {
-    return this.firestore.collection<Cliente>(this.collection)
+    return this.firestore
+      .collection<Cliente>(this.collection)
       .snapshotChanges()
       .pipe(
-        map(actions => actions.map(a => {
-          const data = a.payload.doc.data() as Cliente;
-          return { ...data, id: a.payload.doc.id };
-        }))
+        map((actions) =>
+          actions.map((a) => {
+            const data = a.payload.doc.data() as Cliente;
+            return { ...data, id: a.payload.doc.id };
+          })
+        ),
+        switchMap((clientes) => {
+          // Si no hay clientes, retornar array vacío
+          if (clientes.length === 0) {
+            return [[]];
+          }
+          
+          // Para cada cliente, obtener el conteo de televisores
+          const clientesConTvs = clientes.map((cliente) =>
+            this.televisorService.contarTelevisoresPorCliente(cliente.id).pipe(
+              map((conteoTvs) => ({
+                ...cliente,
+                televisores: new Array(conteoTvs).fill(null)
+              }))
+            )
+          );
+          
+          // Combinar todos los observables
+          return combineLatest(clientesConTvs);
+        })
       );
   }
 

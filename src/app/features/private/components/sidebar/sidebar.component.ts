@@ -42,13 +42,6 @@ export class SidebarComponent implements OnInit {
       route: '/televisores',
     },
     {
-      name: 'Programación',
-      icon: 'bi-calendar3',
-      iconColor: '#38bdf8',
-      route: '/simulacion',
-    },
-
-    {
       name: 'Ajustes',
       icon: 'bi-sliders',
       iconColor: '#38bdf8',

@@ -1,0 +1,368 @@
+// Estilos para el modal de gestión de imágenes
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  animation: fadeIn 0.3s ease-out;
+
+  .modal-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    max-width: 900px;
+    width: 95%;
+    max-height: 90vh;
+    overflow: hidden;
+    animation: slideIn 0.3s ease-out;
+
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #e9ecef;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+
+      h3 {
+        margin: 0;
+        font-weight: 600;
+      }
+
+      .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.8;
+        
+        &:hover {
+          opacity: 1;
+        }
+      }
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      max-height: calc(90vh - 140px);
+      overflow-y: auto;
+    }
+  }
+}
+
+// Upload section styles
+.upload-section {
+  .upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+
+    &.drag-over {
+      border-color: #007bff;
+      background: #e3f2fd;
+      transform: scale(1.02);
+    }
+
+    &:hover {
+      border-color: #6c757d;
+    }
+  }
+
+  .selected-files {
+    .files-grid {
+      display: grid;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    .file-preview {
+      .file-info {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+
+        span {
+          flex: 1;
+          font-size: 0.9rem;
+          margin-left: 0.5rem;
+        }
+      }
+    }
+  }
+
+  .progress {
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+
+    .progress-bar {
+      background: linear-gradient(90deg, #28a745, #20c997);
+      transition: width 0.3s ease;
+    }
+  }
+}
+
+// Images grid styles
+.images-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+
+  .image-card {
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .image-container {
+      position: relative;
+      overflow: hidden;
+
+      .image-preview {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+      }
+
+      .image-overlay {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        display: flex;
+        gap: 4px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+
+        .btn {
+          backdrop-filter: blur(10px);
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &.btn-primary {
+            background: rgba(0, 123, 255, 0.9);
+            color: white;
+          }
+
+          &.btn-warning {
+            background: rgba(255, 193, 7, 0.9);
+            color: white;
+          }
+
+          &.btn-danger {
+            background: rgba(220, 53, 69, 0.9);
+            color: white;
+          }
+        }
+      }
+
+      &:hover {
+        .image-preview {
+          transform: scale(1.05);
+        }
+
+        .image-overlay {
+          opacity: 1;
+        }
+      }
+    }
+
+    .image-info {
+      padding: 1rem;
+
+      .image-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #495057;
+      }
+
+      .schedule-summary {
+        .badge {
+          font-size: 0.75rem;
+          padding: 0.4em 0.6em;
+
+          &.bg-success {
+            background: linear-gradient(135deg, #28a745, #20c997) !important;
+          }
+
+          &.bg-info {
+            background: linear-gradient(135deg, #17a2b8, #6f42c1) !important;
+          }
+        }
+      }
+
+      .schedules-list {
+        .schedule-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.5rem;
+          background: #f8f9fa;
+          border-radius: 6px;
+          margin-bottom: 0.5rem;
+          border-left: 3px solid #007bff;
+
+          small {
+            line-height: 1.3;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Schedule step styles
+.schedule-step {
+  .days-section {
+    .quick-select-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1rem;
+
+      .day-checkbox {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+
+        &:hover {
+          background: #e9ecef;
+          border-color: #007bff;
+        }
+
+        input[type="checkbox"] {
+          margin-right: 0.5rem;
+          transform: scale(1.2);
+
+          &:checked + label {
+            color: #007bff;
+            font-weight: 600;
+          }
+        }
+
+        label {
+          cursor: pointer;
+          margin: 0;
+          font-size: 0.9rem;
+        }
+      }
+    }
+  }
+}
+
+.add-image-card {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+  }
+}
+
+.upload-area-small {
+  text-align: center;
+  padding: 1rem;
+  
+  &.drag-over {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+  }
+}
+
+// Empty state styles
+.empty-state {
+  color: #6c757d;
+
+  i {
+    opacity: 0.5;
+  }
+
+  h4 {
+    color: #495057;
+    font-weight: 500;
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .image-modal .modal-container {
+    width: 98%;
+    max-height: 95vh;
+    margin: 1rem;
+
+    .modal-body {
+      padding: 1rem;
+    }
+  }
+
+  .images-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .schedule-step .days-section .days-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .upload-section .selected-files .files-grid {
+    grid-template-columns: 1fr;
+  }
+}

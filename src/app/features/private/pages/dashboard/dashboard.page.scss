@@ -71,10 +71,6 @@
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   }
 
-  &:nth-child(4) .stat-icon {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-  }
-
   .stat-content {
     flex: 1;
 
@@ -186,14 +182,41 @@
 
 .activity-item {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
+  gap: 12px;
   padding: 16px 0;
   border-bottom: 1px solid #f1f5f9;
 
   &:last-child {
     border-bottom: none;
     padding-bottom: 0;
+  }
+
+  .activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  &.activity-cliente .activity-icon {
+    background-color: #e0f2fe;
+    color: #0284c7;
+  }
+
+  &.activity-televisor .activity-icon {
+    background-color: #fef3e2;
+    color: #ea580c;
+  }
+
+  &.activity-imagen .activity-icon {
+    background-color: #f0fdf4;
+    color: #16a34a;
   }
 
   .activity-content {
@@ -219,6 +242,23 @@
       color: #94a3b8;
       white-space: nowrap;
     }
+  }
+}
+
+.no-activities {
+  text-align: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+
+  i {
+    font-size: 2rem;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.875rem;
   }
 }
 
@@ -251,4 +291,43 @@
       font-size: 1.5rem;
     }
   }
+}
+
+// Loading states
+.loading-card {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e2e8f0;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  height: 16px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+  margin-bottom: 8px;
+
+  &.small {
+    height: 12px;
+    width: 60%;
+  }
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
