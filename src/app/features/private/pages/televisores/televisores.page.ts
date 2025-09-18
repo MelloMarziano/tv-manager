@@ -8,7 +8,7 @@ import { SnackbarService } from '../../../../core/services/snackbar.service';
 import { CreateTelevisorRequest, Televisor } from '../../../../core/models/televisor.model';
 import { Cliente } from '../../../../core/models/cliente.model';
 import { ImagenTv, HorarioImagen, DiaSemana } from '../../../../core/models/imagen.model';
-import { lastValueFrom, take } from 'rxjs';
+import { lastValueFrom, take, interval, Subscription } from 'rxjs';
 
 declare const bootstrap: any;
 
@@ -22,6 +22,7 @@ interface TelevisorLocal extends Televisor {
 interface ImagenTvLocal extends ImagenTv {
   uiColor: string;
   showDetails?: boolean;
+  isActive?: boolean; // New property
 }
 
 interface TimeSlot {
@@ -55,6 +56,8 @@ export class TelevisoresPage implements OnInit {
   emptyStateMessage = '';
   isUploading = false;
   guardandoHorario = false;
+  currentDate: Date = new Date(); // New property
+  private _intervalSubscription: Subscription | undefined; // New property
 
   // Estado del Modal
   showImageModal = false;
@@ -89,6 +92,17 @@ export class TelevisoresPage implements OnInit {
       this.clienteId = params['clienteId'] || null;
       this.loadInitialData();
     });
+
+    // Update current date every minute for real-time active status
+    this._intervalSubscription = interval(60 * 1000).subscribe(() => {
+      this.currentDate = new Date();
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this._intervalSubscription) {
+      this._intervalSubscription.unsubscribe();
+    }
   }
 
   private initializeForms(): void {
@@ -403,6 +417,31 @@ export class TelevisoresPage implements OnInit {
     return dias.map(dia => dayNames[dia.value] || '?').join(', ');
   }
   is24_7(image: ImagenTv): boolean { return image.horarios.length === 0; }
+
+  isImageActive(image: ImagenTvLocal): boolean {
+    if (this.is24_7(image)) {
+      return true; // Always active if 24/7
+    }
+
+    const currentDay = this.currentDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const currentHour = this.currentDate.getHours();
+    const currentMinute = this.currentDate.getMinutes();
+    const currentTimeInMinutes = currentHour * 60 + currentMinute;
+
+    return image.horarios.some(schedule => {
+      const hasDay = schedule.dias.some(d => d.value === currentDay);
+      if (!hasDay) return false;
+
+      const [startHour, startMinute] = schedule.horaInicio.split(':').map(Number);
+      const [endHour, endMinute] = schedule.horaFin.split(':').map(Number);
+
+      const startTimeInMinutes = startHour * 60 + startMinute;
+      const endTimeInMinutes = endHour * 60 + endMinute;
+
+      // Check if current time is within the schedule's time range
+      return currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes;
+    });
+  }
   
   // Lógica de carga de archivos
   onDragOver(event: DragEvent): void { event.preventDefault(); this.isDragOver = true; }

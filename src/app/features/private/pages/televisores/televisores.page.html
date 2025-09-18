@@ -81,6 +81,7 @@
                   <th scope="col" class="color-legend-cell"></th>
                   <th scope="col">Nombre</th>
                   <th scope="col">Programación</th>
+                  <th scope="col">Estado Actual</th> <!-- New Column -->
                   <th scope="col" class="text-end">Acciones</th>
                 </tr>
               </thead>
@@ -100,6 +101,10 @@
                     </div>
                     <div *ngIf="!is24_7(image) && image.horarios.length === 0" class="badge bg-warning text-dark">Sin programar</div>
                   </td>
+                  <td>
+                    <span *ngIf="isImageActive(image)" class="badge bg-success">Activa</span>
+                    <span *ngIf="!isImageActive(image)" class="badge bg-secondary">Inactiva</span>
+                  </td> <!-- New Cell -->
                   <td class="actions-cell text-end">
                     <button class="btn btn-sm btn-outline-primary me-2" (click)="programarImagen(image)" title="Programar">
                       <i class="bi bi-clock"></i>
